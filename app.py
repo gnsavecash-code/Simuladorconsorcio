@@ -72,6 +72,12 @@ st.markdown("""
         font-size: 0.88rem;
         margin: 4px 0;
     }
+    /* Oculta totalmente o cabeçalho superior direito, links e marca d'água */
+    header {visibility: hidden !important;}
+    #MainMenu {visibility: hidden !important;}
+    footer {visibility: hidden !important;}
+    .stDeployButton {display: none !important;}
+    div[data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -124,11 +130,11 @@ st.sidebar.header(" Parâmetros da Simulação")
 
 credito_liquido = st.sidebar.slider(
     "Valor do Crédito Desejado (R$)", 
-    min_value=140000.0, max_value=1500000.0, value=310000.0, step=25000.0
+    min_value=100000.0, max_value=1500000.0, value=310000.0, step=1000.00
 )
 
-prazo_desejado = st.sidebar.slider(
-    "Prazo Desejado (Meses)", 
+prazo_financiamento = st.sidebar.slider(
+    "Prazo Desejado para o Financiamento (Meses)", 
     min_value=60, max_value=360, value=240, step=12
 )
 
@@ -152,16 +158,15 @@ var_max_percentual = st.sidebar.slider(
 
 saldo_lance_entrada = st.sidebar.slider(
     "Saldo Disponível para Lance / Entrada (R$)", 
-    min_value=0.0, max_value=1000000.0, value=60000.0, step=10000.0
+    min_value=0.0, max_value=1000000.0, value=60000.0, step=1000.0
 )
-
-# --- BUSCA INTELIGENTE DE CARTA CONTEMPLADA ---
-tolerancia_busca = max(50000.0, credito_liquido * 0.12)
-cartas_compativeis = [c for c in CARTAS_MERCADO if abs(c["credito"] - credito_liquido) <= tolerancia_busca]
 
 # --- MOTOR DE CÁLCULO ---
 
-# 1. Financiamento Imobiliário (Tabela Price)
+# Prazo do consórcio limitado ao teto padrão de mercado de 240 meses (ou o escolhido se menor)
+prazo_consorcio = min(prazo_financiamento, 240)
+
+# 1. Financiamento Imobiliário (Tabela Price) - Usa o prazo escolhido pelo usuário
 taxa_juros_anual_fin = 0.112 
 taxa_juros_mensal_fin = (1 + taxa_juros_anual_fin)**(1/12) - 1
 
@@ -170,20 +175,23 @@ valor_total_financiamento = credito_liquido * (1 + custo_doc) - min(saldo_lance_
 valor_total_financiamento = max(0, valor_total_financiamento)
 
 if valor_total_financiamento > 0:
-    pmt_financiamento = valor_total_financiamento * (taxa_juros_mensal_fin * (1 + taxa_juros_mensal_fin)**prazo_desejado) / ((1 + taxa_juros_mensal_fin)**prazo_desejado - 1)
-    custo_total_financiamento = pmt_financiamento * prazo_desejado
+    pmt_financiamento = valor_total_financiamento * (taxa_juros_mensal_fin * (1 + taxa_juros_mensal_fin)**prazo_financiamento) / ((1 + taxa_juros_mensal_fin)**prazo_financiamento - 1)
+    custo_total_financiamento = pmt_financiamento * prazo_financiamento
 else:
     pmt_financiamento = 0
     custo_total_financiamento = 0
 
-# 2. Consórcio Novo (Lance / Sorteio)
-taxa_adm_consorcio = 0.18
+# 2. Consórcio Novo (Lance / Sorteio) - Usa o prazo ajustado (teto de 240 meses)
+taxa_adm_consorcio = 0.20
 fundo_reserva = 0.02
 fator_custo_consorcio = 1 + taxa_adm_consorcio + fundo_reserva
 valor_total_consorcio = credito_liquido * fator_custo_consorcio
-pmt_consorcio_base = valor_total_consorcio / prazo_desejado
+pmt_consorcio_base = valor_total_consorcio / prazo_consorcio
 
 # 3. Carta Contemplada (Se houver compatível)
+tolerancia_busca = max(50000.0, credito_liquido * 0.12)
+cartas_compativeis = [c for c in CARTAS_MERCADO if abs(c["credito"] - credito_liquido) <= tolerancia_busca]
+
 if cartas_compativeis:
     carta_ativa = cartas_compativeis[0] 
     custo_aquisicao_agio = carta_ativa["entrada_agio"]
@@ -210,7 +218,7 @@ with col1:
             <h2>R$ {custo_total_financiamento:,.2f}</h2>
             <p><b>Parcela:</b> R$ {pmt_financiamento:,.2f}</p>
             <p><b>Entrada/FGTS:</b> R$ {min(saldo_lance_entrada, credito_liquido * 0.3):,.2f}</p>
-            <p><b>Prazo:</b> {prazo_desejado} meses</p>
+            <p><b>Prazo:</b> {prazo_financiamento} meses</p>
         </div>
     """, unsafe_allow_html=True)
 
@@ -221,7 +229,7 @@ with col2:
             <h2>R$ {valor_total_consorcio:,.2f}</h2>
             <p><b>Parcela:</b> R$ {pmt_consorcio_base:,.2f}</p>
             <p><b>Lance Utilizado:</b> R$ {saldo_lance_entrada:,.2f}</p>
-            <p><b>Prazo:</b> {prazo_desejado} meses</p>
+            <p><b>Prazo:</b> {prazo_consorcio} meses</p>
         </div>
     """, unsafe_allow_html=True)
 
@@ -232,7 +240,7 @@ with col3:
             <h2>R$ {valor_total_consorcio:,.2f}</h2>
             <p><b>Parcela:</b> R$ {pmt_consorcio_base:,.2f}</p>
             <p><b>Lance/Entrada:</b> R$ 0,00</p>
-             <p><b>Prazo:</b> {prazo_desejado} meses</p>
+             <p><b>Prazo:</b> {prazo_consorcio} meses</p>
         </div>
     """, unsafe_allow_html=True)
 
@@ -307,9 +315,6 @@ def gerar_pdf():
     pdf = FPDF()
     pdf.add_page()
     
-    # Adiciona a logótipo no topo do PDF (Baixando temporariamente ou usando URL se suportado, 
-    # para garantir compatibilidade com FPDF salvamos via requisição ou URL direta se suportada, 
-    # mas o método mais seguro no FPDF local é baixar a imagem para um tempfile)
     import urllib.request
     try:
         url_logo = "https://raw.githubusercontent.com/gnsavecash-code/logos/main/logo%20investflow.png"
@@ -319,11 +324,10 @@ def gerar_pdf():
         tmp_logo.write(logo_data)
         tmp_logo.close()
         
-        # Insere a logótipo no PDF (Coordenadas x=15, y=10, largura=40)
         pdf.image(tmp_logo.name, x=15, y=10, w=40)
         os.unlink(tmp_logo.name)
     except Exception:
-        pass # Caso haja falha de rede ao gerar o PDF, o relatório sai sem quebrar a execução
+        pass 
     
     pdf.set_fill_color(18, 18, 18)
     pdf.rect(60, 10, 140, 22, 'F')
@@ -350,9 +354,9 @@ def gerar_pdf():
     
     pdf.set_xy(15, pdf.get_y() + 3)
     pdf.cell(90, 6, f"Credito Desejado: R$ {credito_liquido:,.2f}", align="L")
-    pdf.cell(90, 6, f"Prazo Escolhido: {prazo_desejado} meses", align="L")
+    pdf.cell(90, 6, f"Prazo Financiamento: {prazo_financiamento} meses", align="L")
     pdf.set_xy(15, pdf.get_y() + 6)
-    pdf.cell(90, 6, f"Capacidade Mensal: R$ {capacidade_pagamento:,.2f}", align="L")
+    pdf.cell(90, 6, f"Prazo Consorcio: {prazo_consorcio} meses", align="L")
     pdf.cell(90, 6, f"Saldo/Lance Disponivel: R$ {saldo_lance_entrada:,.2f}", align="L")
     
     pdf.ln(15)
@@ -361,9 +365,9 @@ def gerar_pdf():
     pdf.cell(0, 8, "2. RESULTADOS COMPARATIVOS POR MODALIDADE", new_x="LMARGIN", new_y="NEXT")
     
     modalidades_pdf = [
-        ("Financiamento Bancario (Tabela Price)", f"R$ {custo_total_financiamento:,.2f}", f"Parcela: R$ {pmt_financiamento:,.2f}", f"Prazo: {prazo_desejado} meses"),
-        ("Consorcio com Contemplacao por Lance", f"R$ {valor_total_consorcio:,.2f}", f"Parcela: R$ {pmt_consorcio_base:,.2f}", f"Prazo: {prazo_desejado} meses"),
-        ("Consorcio com Contemplacao por Sorteio", f"R$ {valor_total_consorcio:,.2f}", f"Parcela: R$ {pmt_consorcio_base:,.2f}", "Prazo: Indeterminado"),
+        ("Financiamento Bancario (Tabela Price)", f"R$ {custo_total_financiamento:,.2f}", f"Parcela: R$ {pmt_financiamento:,.2f}", f"Prazo: {prazo_financiamento} meses"),
+        ("Consorcio com Contemplacao por Lance", f"R$ {valor_total_consorcio:,.2f}", f"Parcela: R$ {pmt_consorcio_base:,.2f}", f"Prazo: {prazo_consorcio} meses"),
+        ("Consorcio com Contemplacao por Sorteio", f"R$ {valor_total_consorcio:,.2f}", f"Parcela: R$ {pmt_consorcio_base:,.2f}", f"Prazo: {prazo_consorcio} meses"),
     ]
     
     if tem_carta:

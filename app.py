@@ -72,6 +72,19 @@ st.markdown("""
         font-size: 0.88rem;
         margin: 4px 0;
     }
+    /* Altera a cor da barra preenchida e do botão do slider para verde */
+    div[data-baseweb="slider"] div[role="slider"] {
+        background-color: #00FF7F !important;
+        border-color: #00FF7F !important;
+    }
+    div[data-testid="stSlider"] div[data-baseweb="slider"] > div > div > div {
+        background-color: #00FF7F !important;
+    }
+    /* Altera a cor do checkbox selecionado para verde */
+    span[data-baseweb="checkbox"] input:checked + div {
+        background-color: #00FF7F !important;
+        border-color: #00FF7F !important;
+    }
     /* Oculta totalmente o cabeçalho superior direito, links e marca d'água */
     header {visibility: hidden !important;}
     #MainMenu {visibility: hidden !important;}

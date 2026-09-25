@@ -85,12 +85,21 @@ st.markdown("""
         background-color: #00FF7F !important;
         border-color: #00FF7F !important;
     }
-    /* Oculta totalmente o cabeçalho superior direito, links e marca d'água */
-    header {visibility: hidden !important;}
+   /* Oculta o menu principal, rodapé e barra de ferramentas, mas mantém o cabeçalho e botão da sidebar */
     #MainMenu {visibility: hidden !important;}
     footer {visibility: hidden !important;}
     .stDeployButton {display: none !important;}
     div[data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
+    
+    /* Força a exibição do botão de recolher/expandir a barra lateral no canto superior */
+    header[data-testid="stHeader"] {
+        background-color: transparent !important;
+        visibility: visible !important;
+    }
+    header[data-testid="stHeader"] button {
+        visibility: visible !important;
+        display: flex !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 

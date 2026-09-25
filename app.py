@@ -14,19 +14,32 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilização CSS customizada: Fundo preto absoluto, sem barras brancas e botões customizados
 st.markdown("""
     <style>
     .main, .stApp {
         background-color: #000000 !important;
         color: #FFFFFF !important;
     }
-    header[data-testid="stHeader"] {
-        background-color: transparent !important;
-    }
     .stSidebar {
         background-color: #0A0A0A !important;
         color: #FFFFFF !important;
+    }
+    /* Cores dos Sliders e Checkbox para Verde Investflow */
+    div[data-baseweb="slider"] div[role="slider"] {
+        background-color: #00FF7F !important;
+        border-color: #00FF7F !important;
+    }
+    div[data-testid="stSlider"] div[data-baseweb="slider"] > div > div > div {
+        background-color: #00FF7F !important;
+    }
+    span[data-baseweb="checkbox"] input:checked + div {
+        background-color: #00FF7F !important;
+        border-color: #00FF7F !important;
+    }
+    /* Aumenta a altura da logo na barra lateral */
+    [data-testid="stSidebar"] img {
+        max-height: 130px !important;
+        object-fit: contain;
     }
     h1, h2, h3, h4 {
         color: #00FF7F !important;
@@ -72,34 +85,10 @@ st.markdown("""
         font-size: 0.88rem;
         margin: 4px 0;
     }
-    /* Altera a cor da barra preenchida e do botão do slider para verde */
-    div[data-baseweb="slider"] div[role="slider"] {
-        background-color: #00FF7F !important;
-        border-color: #00FF7F !important;
-    }
-    div[data-testid="stSlider"] div[data-baseweb="slider"] > div > div > div {
-        background-color: #00FF7F !important;
-    }
-    /* Altera a cor do checkbox selecionado para verde */
-    span[data-baseweb="checkbox"] input:checked + div {
-        background-color: #00FF7F !important;
-        border-color: #00FF7F !important;
-    }
-   /* Oculta o menu principal, rodapé e barra de ferramentas, mas mantém o cabeçalho e botão da sidebar */
+    /* Oculta apenas os menus de ferramentas extras e rodapé, preservando o cabeçalho e botão da sidebar */
     #MainMenu {visibility: hidden !important;}
     footer {visibility: hidden !important;}
     .stDeployButton {display: none !important;}
-    div[data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
-    
-    /* Força a exibição do botão de recolher/expandir a barra lateral no canto superior */
-    header[data-testid="stHeader"] {
-        background-color: transparent !important;
-        visibility: visible !important;
-    }
-    header[data-testid="stHeader"] button {
-        visibility: visible !important;
-        display: flex !important;
-    }
     </style>
 """, unsafe_allow_html=True)
 

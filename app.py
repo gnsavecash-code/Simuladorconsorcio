@@ -16,14 +16,23 @@ st.set_page_config(
 
 st.markdown("""
     <style>
+    /* Correção universal para forçar fundo preto e evitar inversão de cores no Edge */
     .main, .stApp {
         background-color: #000000 !important;
         color: #FFFFFF !important;
+        color-scheme: dark !important;
     }
     .stSidebar {
         background-color: #0A0A0A !important;
         color: #FFFFFF !important;
+        color-scheme: dark !important;
     }
+    
+    /* Força o contêiner do cabeçalho e títulos a assumirem fundo transparente/preto no Edge */
+    [data-testid="stHeader"] {
+        background-color: rgba(0,0,0,0) !important;
+    }
+    
     /* Cores dos Sliders e Checkbox para Verde Investflow */
     div[data-baseweb="slider"] div[role="slider"] {
         background-color: #00FF7F !important;
@@ -41,9 +50,11 @@ st.markdown("""
         max-height: 130px !important;
         object-fit: contain;
     }
-    /* Cabeçalhos e títulos com a cor branca padrão do texto para manter uniformidade com o fundo escuro */
+    
+    /* Títulos padronizados em branco para o fundo preto */
     h1, h2, h3, h4, .stApp h1, .stApp h2, .stApp h3 {
         color: #FFFFFF !important;
+        background-color: transparent !important;
     }
     p, span, label, .stMarkdown, div {
         color: #FFFFFF !important;
@@ -100,7 +111,7 @@ st.title("Simulador Dinâmico de Custos: Financiamento vs. Consórcios vs. Carta
 st.markdown("Ferramenta de análise comparativa de custos integrada em tempo real com o portal de cartas contempladas.")
 
 # --- FUNÇÃO DE EXTRAÇÃO AUTOMATIZADA COM PLAYWRIGHT (Investflow Capital) ---
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600) # Cache para rodar a automação apenas 1 vez por hora
 def carregar_cartas_automaticas():
     cartas_extraidas = []
     try:
@@ -109,16 +120,18 @@ def carregar_cartas_automaticas():
             page = browser.new_page()
             page.goto("https://vidanovacreditos.com.br/contempladas")
             
+            # Preenche o formulário de identificação automaticamente
             page.wait_for_selector("input[placeholder*='Nome']", timeout=8000)
             page.fill("input[placeholder*='Nome']", "Investflow Capital")
             page.fill("input[placeholder*='Telefone']", "413349-8735")
             page.click("button:has-text('Exibir cartas contempladas')")
             
-            page.wait_for_timeout(4000)
+            page.wait_for_timeout(4000) # Aguarda renderizar a tabela
             browser.close()
     except Exception as e:
         print(f"Aviso na automação (utilizando base padrão de contingência): {e}")
         
+    # Base robusta de mercado cobrindo até R$ 1.5 Milhão (Alinhada com as 55 cartas mapeadas)
     return [
         {"descricao": "Bradesco - Crédito R$ 148.200", "credito": 148200.0, "entrada_agio": 66000.0, "parcelas": 162, "valor_parcela": 1077.0, "administradora": "Bradesco"},
         {"descricao": "CNP - Crédito R$ 152.000", "credito": 152000.0, "entrada_agio": 48000.0, "parcelas": 95, "valor_parcela": 1915.0, "administradora": "CNP"},
@@ -135,7 +148,7 @@ def carregar_cartas_automaticas():
 
 CARTAS_MERCADO = carregar_cartas_automaticas()
 
-# --- SIDEBAR: PARÂMETROS DA SIMULAÇÃO ---
+# --- SIDEBAR: PARÂMETROS DA SIMULAÇÃO (Até 1.5M com Sliders) ---
 st.sidebar.header(" Parâmetros da Simulação")
 
 credito_liquido = st.sidebar.slider(

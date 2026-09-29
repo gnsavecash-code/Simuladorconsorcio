@@ -41,8 +41,9 @@ st.markdown("""
         max-height: 130px !important;
         object-fit: contain;
     }
-    h1, h2, h3, h4 {
-        color: #00FF7F !important;
+    /* Cabeçalhos e títulos com a cor branca padrão do texto para manter uniformidade com o fundo escuro */
+    h1, h2, h3, h4, .stApp h1, .stApp h2, .stApp h3 {
+        color: #FFFFFF !important;
     }
     p, span, label, .stMarkdown, div {
         color: #FFFFFF !important;
@@ -95,11 +96,11 @@ st.markdown("""
 # --- LOGÓTIPO NA BARRA LATERAL ---
 st.sidebar.image("https://raw.githubusercontent.com/gnsavecash-code/logos/main/logo%20investflow.png", use_container_width=True)
 
-st.title(" Simulador Dinâmico de Custos: Financiamento vs. Consórcios vs. Carta Contemplada")
+st.title("Simulador Dinâmico de Custos: Financiamento vs. Consórcios vs. Carta Contemplada")
 st.markdown("Ferramenta de análise comparativa de custos integrada em tempo real com o portal de cartas contempladas.")
 
 # --- FUNÇÃO DE EXTRAÇÃO AUTOMATIZADA COM PLAYWRIGHT (Investflow Capital) ---
-@st.cache_data(ttl=3600) # Cache para rodar a automação apenas 1 vez por hora
+@st.cache_data(ttl=3600)
 def carregar_cartas_automaticas():
     cartas_extraidas = []
     try:
@@ -108,18 +109,16 @@ def carregar_cartas_automaticas():
             page = browser.new_page()
             page.goto("https://vidanovacreditos.com.br/contempladas")
             
-            # Preenche o formulário de identificação automaticamente
             page.wait_for_selector("input[placeholder*='Nome']", timeout=8000)
             page.fill("input[placeholder*='Nome']", "Investflow Capital")
             page.fill("input[placeholder*='Telefone']", "413349-8735")
             page.click("button:has-text('Exibir cartas contempladas')")
             
-            page.wait_for_timeout(4000) # Aguarda renderizar a tabela
+            page.wait_for_timeout(4000)
             browser.close()
     except Exception as e:
         print(f"Aviso na automação (utilizando base padrão de contingência): {e}")
         
-    # Base robusta de mercado cobrindo até R$ 1.5 Milhão (Alinhada com as 55 cartas mapeadas)
     return [
         {"descricao": "Bradesco - Crédito R$ 148.200", "credito": 148200.0, "entrada_agio": 66000.0, "parcelas": 162, "valor_parcela": 1077.0, "administradora": "Bradesco"},
         {"descricao": "CNP - Crédito R$ 152.000", "credito": 152000.0, "entrada_agio": 48000.0, "parcelas": 95, "valor_parcela": 1915.0, "administradora": "CNP"},
@@ -136,7 +135,7 @@ def carregar_cartas_automaticas():
 
 CARTAS_MERCADO = carregar_cartas_automaticas()
 
-# --- SIDEBAR: PARÂMETROS DA SIMULAÇÃO (Até 1.5M com Sliders) ---
+# --- SIDEBAR: PARÂMETROS DA SIMULAÇÃO ---
 st.sidebar.header(" Parâmetros da Simulação")
 
 credito_liquido = st.sidebar.slider(
@@ -173,11 +172,8 @@ saldo_lance_entrada = st.sidebar.slider(
 )
 
 # --- MOTOR DE CÁLCULO ---
-
-# Prazo do consórcio limitado ao teto padrão de mercado de 240 meses (ou o escolhido se menor)
 prazo_consorcio = min(prazo_financiamento, 240)
 
-# 1. Financiamento Imobiliário (Tabela Price) - Usa o prazo escolhido pelo usuário
 taxa_juros_anual_fin = 0.112 
 taxa_juros_mensal_fin = (1 + taxa_juros_anual_fin)**(1/12) - 1
 
@@ -192,14 +188,12 @@ else:
     pmt_financiamento = 0
     custo_total_financiamento = 0
 
-# 2. Consórcio Novo (Lance / Sorteio) - Usa o prazo ajustado (teto de 240 meses)
 taxa_adm_consorcio = 0.20
 fundo_reserva = 0.02
 fator_custo_consorcio = 1 + taxa_adm_consorcio + fundo_reserva
 valor_total_consorcio = credito_liquido * fator_custo_consorcio
 pmt_consorcio_base = valor_total_consorcio / prazo_consorcio
 
-# 3. Carta Contemplada (Se houver compatível)
 tolerancia_busca = max(50000.0, credito_liquido * 0.12)
 cartas_compativeis = [c for c in CARTAS_MERCADO if abs(c["credito"] - credito_liquido) <= tolerancia_busca]
 
